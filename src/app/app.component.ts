@@ -5,9 +5,9 @@ import config from '../aws-exports';
 import { APIService } from './API.service';
 import { addSampleData } from 'src/graphql/mutations';
 import * as subscriptions from 'src/graphql/subscriptions';
-import { query } from '@angular/animations';
+import { Amplify } from "@aws-amplify/core";
 
-API.configure(config)
+Amplify.configure(config)
 
 @Component({
   selector: 'app-root',
@@ -17,14 +17,26 @@ API.configure(config)
 export class AppComponent {
   // after your imports
   title = 'newAppSync';
+  listData: any;
 
   constructor(private api: APIService) { }
-  ngOnInit(): void { }
+
+  ngOnInit() {
+    const result = this.api.SubscribeToNewMessageListener().subscribe({
+      next: (data) => {
+        let newData = data.value.data.subscribeToNewMessage;
+        this.listData = `ID: ${newData.id}, Key: ${newData.key}` ;
+      }
+    })
+    // result.unsubscribe();
+  }
 
   ngAfterViewInit() {
     this.createUser();
-    this.test();
+    console.log(this.listData);
   }
+
+
 
   async createUser() {
     const gqlAPIServiceArguments: any = {};
@@ -34,17 +46,5 @@ export class AppComponent {
     const users = await API.graphql(
       graphqlOperation(addSampleData, gqlAPIServiceArguments)
     )
-    console.log(users);
-  }
-
-  test() {
-    // Subscribe to creation of Todo
-    const subscription = API.graphql(
-      graphqlOperation(subscriptions.subscribeToNewMessage)
-    ).subscribe({
-      next: ({ provider, value }) => console.log({ provider, value }),
-      error: (error) => console.warn(error)
-    })
-    console.log(subscription, typeof subscription);
   }
 }
